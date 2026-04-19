@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pipes Simulator - IPC Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <div class="navbar-brand">🔄 IPC Debugger</div>
+            <div class="navbar-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="pipes.html" class="nav-link active">Pipes</a>
+                <a href="message-queue.html" class="nav-link">Message Queue</a>
+                <a href="shared-memory.html" class="nav-link">Shared Memory</a>
+                <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="page-wrapper">
+        <div class="container" style="padding: 2rem 1.5rem;">
+            <!-- Header -->
+            <section class="text-center" style="margin-bottom: 2rem;">
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    🔗 Pipes Simulator
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">
+                    Visualize unidirectional data flow between processes through a pipe buffer
+                </p>
+            </section>
+
+            <!-- Controls -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Controls</h3>
+                <div style="display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="pipeData">Data to Send (Process A)</label>
+                        <input type="text" id="pipeData" class="form-input"
+                            placeholder="Enter message to send through pipe..." maxlength="50">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label">
+                            <input type="checkbox" id="blockingMode" checked style="margin-right: 0.5rem;">
+                            Blocking Mode
+                        </label>
+                    </div>
+                    <button id="sendBtn" class="btn btn-primary" onclick="sendThroughPipe()">
+                        Send Data →
+                    </button>
+                </div>
+                <div
+                    style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md); font-size: 0.9rem;">
+                    <strong>Buffer Status:</strong>
+                    <span id="bufferStatus">0 / 4096 bytes (0%)</span>
+                    <div
+                        style="margin-top: 0.5rem; height: 8px; background: var(--bg-primary); border-radius: 4px; overflow: hidden;">
+                        <div id="bufferBar"
+                            style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark)); transition: width 0.3s;">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Process Visualization -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1.5rem;">Process Communication</h3>
+                <div class="process-container" id="processContainer">
+                    <!-- Process A -->
+                    <div class="process-box" id="processA">
+                        <div class="process-label">Process A</div>
+                        <div style="font-size: 2rem; margin: 1rem 0;">📤</div>
+                        <div class="process-status" id="statusA">Ready to write</div>
+                        <div style="margin-top: 1rem; padding: 0.5rem; background: var(--bg-primary); border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; min-height: 40px; word-break: break-all;"
+                            id="processAData">
+                            -
+                        </div>
+                    </div>
+
+                    <!-- Pipe Connector -->
+                    <div class="pipe-connector" id="pipeConnector">
+                        <div
+                            style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--text-tertiary); font-size: 0.85rem; font-weight: 600;">
+                            PIPE BUFFER
+                        </div>
+                    </div>
+
+                    <!-- Process B -->
+                    <div class="process-box" id="processB">
+                        <div class="process-label">Process B</div>
+                        <div style="font-size: 2rem; margin: 1rem 0;">📥</div>
+                        <div class="process-status" id="statusB">Waiting to read</div>
+                        <div style="margin-top: 1rem; padding: 0.5rem; background: var(--bg-primary); border-radius: var(--radius-md); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; min-height: 40px; word-break: break-all;"
+                            id="processBData">
+                            -
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Information Panel -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">How Pipes Work</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-primary); margin-bottom: 0.5rem;">📝 Write
+                            Operation</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Process A calls <code
+                                style="background: var(--bg-tertiary); padding: 0.2rem 0.4rem; border-radius: 3px;">write()</code>
+                            to send data into the pipe buffer. If buffer is full in blocking mode, write blocks until
+                            space is available.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-success); margin-bottom: 0.5rem;">📖 Read
+                            Operation</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Process B calls <code
+                                style="background: var(--bg-tertiary); padding: 0.2rem 0.4rem; border-radius: 3px;">read()</code>
+                            to retrieve data from the pipe. If buffer is empty in blocking mode, read blocks until data
+                            arrives.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-warning); margin-bottom: 0.5rem;">⚡ Buffer
+                            Behavior</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Pipe uses a fixed-size buffer (typically 4KB). Data flows in FIFO order.
+                            Non-blocking mode returns immediately with error if buffer is full/empty.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Simulation -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Error Simulation</h3>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-warning" onclick="simulateBufferFull()">
+                        Simulate Buffer Full
+                    </button>
+                    <button class="btn btn-error" onclick="simulatePipeClosed()">
+                        Simulate Pipe Closed
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetPipe()">
+                        Reset Pipe
+                    </button>
+                </div>
+            </section>
+
+            <!-- Debug Console -->
+            <section class="debug-panel">
+                <div class="debug-header">
+                    <div class="debug-title">
+                        <span>🐛</span>
+                        <span>System Call Logs</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+                </div>
+                <div class="debug-console" id="debugConsole"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Pipes Simulator Logic
+        let logger;
+        let pipeBuffer = [];
+        let bufferSize = 0;
+        const MAX_BUFFER_SIZE = 4096;
+        let isAnimating = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            logger = new Logger(document.getElementById('debugConsole'));
+            logger.info('Pipe initialized with buffer size: 4096 bytes');
+            logger.info('System ready. Processes A and B are connected via pipe.');
+        });
+
+        function clearLogs() {
+            logger.clear();
+            logger.info('Logs cleared');
+        }
+
+        async function sendThroughPipe() {
+            if (isAnimating) {
+                logger.warning('Previous operation still in progress');
+                return;
+            }
+
+            const input = document.getElementById('pipeData');
+            const data = input.value.trim();
+
+            if (!data) {
+                logger.error('No data to send');
+                return;
+            }
+
+            const dataSize = new TextEncoder().encode(data).length;
+            const blockingMode = document.getElementById('blockingMode').checked;
+
+            isAnimating = true;
+            document.getElementById('sendBtn').disabled = true;
+
+            // Check buffer capacity
+            if (bufferSize + dataSize > MAX_BUFFER_SIZE) {
+                if (blockingMode) {
+                    logger.warning(`Buffer full (${bufferSize}/${MAX_BUFFER_SIZE} bytes). Blocking until space available...`);
+                    document.getElementById('statusA').textContent = 'Blocked on write';
+                    await sleep(2000);
+                    // Simulate buffer space becoming available
+                    bufferSize = 0;
+                    updateBufferStatus();
+                    logger.info('Buffer space available. Resuming write operation.');
+                } else {
+                    logger.error('EAGAIN: Buffer full in non-blocking mode. Write failed.');
+                    isAnimating = false;
+                    document.getElementById('sendBtn').disabled = false;
+                    return;
+                }
+            }
+
+            // Process A: Write operation
+            document.getElementById('processA').classList.add('active');
+            document.getElementById('statusA').textContent = 'Writing to pipe...';
+            document.getElementById('processAData').textContent = data;
+
+            logger.info(`Process A: write(pipe_fd, "${data}", ${dataSize})`);
+            await sleep(500);
+
+            // Add data to buffer
+            bufferSize += dataSize;
+            pipeBuffer.push(data);
+            updateBufferStatus();
+            logger.success(`Wrote ${dataSize} bytes to pipe buffer`);
+
+            // Animate data through pipe
+            const pipeConnector = document.getElementById('pipeConnector');
+            const dataElement = document.createElement('div');
+            dataElement.className = 'pipe-data';
+            dataElement.textContent = data;
+            pipeConnector.appendChild(dataElement);
+
+            document.getElementById('statusA').textContent = 'Write complete';
+            document.getElementById('processA').classList.remove('active');
+
+            await sleep(1500);
+
+            // Process B: Read operation
+            document.getElementById('processB').classList.add('active');
+            document.getElementById('statusB').textContent = 'Reading from pipe...';
+
+            logger.info(`Process B: read(pipe_fd, buffer, ${MAX_BUFFER_SIZE})`);
+            await sleep(500);
+
+            // Remove data from buffer
+            const receivedData = pipeBuffer.shift();
+            bufferSize -= dataSize;
+            updateBufferStatus();
+
+            document.getElementById('processBData').textContent = receivedData;
+            logger.success(`Read ${dataSize} bytes from pipe: "${receivedData}"`);
+
+            document.getElementById('statusB').textContent = 'Read complete';
+            document.getElementById('processB').classList.remove('active');
+
+            // Cleanup
+            dataElement.remove();
+            input.value = '';
+            isAnimating = false;
+            document.getElementById('sendBtn').disabled = false;
+
+            await sleep(1000);
+            document.getElementById('statusA').textContent = 'Ready to write';
+            document.getElementById('statusB').textContent = 'Waiting to read';
+        }
+
+        function updateBufferStatus() {
+            const percentage = (bufferSize / MAX_BUFFER_SIZE * 100).toFixed(1);
+            document.getElementById('bufferStatus').textContent =
+                `${bufferSize} / ${MAX_BUFFER_SIZE} bytes (${percentage}%)`;
+            document.getElementById('bufferBar').style.width = percentage + '%';
+
+            if (percentage > 80) {
+                document.getElementById('bufferBar').style.background =
+                    'linear-gradient(90deg, var(--color-error), var(--color-warning))';
+            } else {
+                document.getElementById('bufferBar').style.background =
+                    'linear-gradient(90deg, var(--color-primary), var(--color-primary-dark))';
+            }
+        }
+
+        async function simulateBufferFull() {
+            bufferSize = MAX_BUFFER_SIZE;
+            updateBufferStatus();
+            logger.error('BUFFER FULL: Pipe buffer has reached maximum capacity (4096 bytes)');
+            logger.warning('Write operations will block until buffer space is available');
+
+            await sleep(3000);
+            bufferSize = 0;
+            updateBufferStatus();
+            logger.info('Buffer cleared. Normal operations resumed.');
+        }
+
+        async function simulatePipeClosed() {
+            logger.error('SIGPIPE: Broken pipe - read end has been closed');
+            logger.error('Process A received SIGPIPE signal');
+            document.getElementById('statusA').textContent = 'Error: Pipe closed';
+            document.getElementById('statusB').textContent = 'Disconnected';
+
+            await sleep(3000);
+            logger.info('Pipe reconnected');
+            document.getElementById('statusA').textContent = 'Ready to write';
+            document.getElementById('statusB').textContent = 'Waiting to read';
+        }
+
+        function resetPipe() {
+            pipeBuffer = [];
+            bufferSize = 0;
+            updateBufferStatus();
+            document.getElementById('pipeData').value = '';
+            document.getElementById('processAData').textContent = '-';
+            document.getElementById('processBData').textContent = '-';
+            document.getElementById('statusA').textContent = 'Ready to write';
+            document.getElementById('statusB').textContent = 'Waiting to read';
+            logger.info('Pipe reset. All buffers cleared.');
+        }
+
+        // Allow Enter key to send
+        document.getElementById('pipeData').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendThroughPipe();
+            }
+        });
+    </script>
+</body>
+
+</html>

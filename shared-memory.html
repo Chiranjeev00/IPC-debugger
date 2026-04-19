@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Memory Simulator - IPC Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <div class="navbar-brand">🔄 IPC Debugger</div>
+            <div class="navbar-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="pipes.html" class="nav-link">Pipes</a>
+                <a href="message-queue.html" class="nav-link">Message Queue</a>
+                <a href="shared-memory.html" class="nav-link active">Shared Memory</a>
+                <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="page-wrapper">
+        <div class="container" style="padding: 2rem 1.5rem;">
+            <!-- Header -->
+            <section class="text-center" style="margin-bottom: 2rem;">
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    🧠 Shared Memory Simulator
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">
+                    Visualize direct memory access and synchronization between multiple processes
+                </p>
+            </section>
+
+            <!-- Process Controls -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Process Management</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div class="process-control" id="process1Control">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #3b82f6;">Process 1 (Producer)</span>
+                            <span id="status1" style="font-size: 0.85rem; color: var(--text-tertiary);">Detached</span>
+                        </div>
+                        <button class="btn btn-primary" style="width: 100%;" onclick="toggleProcess(1)" id="btn1">
+                            Attach to Memory
+                        </button>
+                    </div>
+                    <div class="process-control" id="process2Control">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #10b981;">Process 2 (Consumer)</span>
+                            <span id="status2" style="font-size: 0.85rem; color: var(--text-tertiary);">Detached</span>
+                        </div>
+                        <button class="btn btn-success" style="width: 100%;" onclick="toggleProcess(2)" id="btn2">
+                            Attach to Memory
+                        </button>
+                    </div>
+                    <div class="process-control" id="process3Control">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #f59e0b;">Process 3 (Observer)</span>
+                            <span id="status3" style="font-size: 0.85rem; color: var(--text-tertiary);">Detached</span>
+                        </div>
+                        <button class="btn btn-warning" style="width: 100%;" onclick="toggleProcess(3)" id="btn3">
+                            Attach to Memory
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Memory Write Controls -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Write to Shared Memory</h3>
+                <div style="display: grid; grid-template-columns: auto 2fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="writeProcess">Process</label>
+                        <select id="writeProcess" class="form-select">
+                            <option value="1">Process 1</option>
+                            <option value="2">Process 2</option>
+                            <option value="3">Process 3</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="writeData">Data</label>
+                        <input type="text" id="writeData" class="form-input" placeholder="Enter data to write..."
+                            maxlength="20">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="writeAddress">Address (0-15)</label>
+                        <input type="number" id="writeAddress" class="form-input" min="0" max="15" value="0">
+                    </div>
+                    <button class="btn btn-primary" onclick="writeToMemory()">
+                        Write to Memory
+                    </button>
+                </div>
+            </section>
+
+            <!-- Shared Memory Visualization -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Shared Memory Block (16 cells)</h3>
+                    <div style="font-size: 0.85rem; color: var(--text-tertiary);">
+                        Base Address: <code
+                            style="background: var(--bg-tertiary); padding: 0.2rem 0.5rem; border-radius: 3px;">0x7F8A4000</code>
+                    </div>
+                </div>
+
+                <div class="memory-grid" id="memoryGrid">
+                    <!-- Memory cells will be generated by JavaScript -->
+                </div>
+
+                <div
+                    style="margin-top: 1rem; padding: 1rem; background: var(--bg-tertiary); border-radius: var(--radius-md);">
+                    <div style="font-weight: 600; margin-bottom: 0.5rem;">Legend:</div>
+                    <div style="display: flex; gap: 2rem; flex-wrap: wrap; font-size: 0.9rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 20px; height: 20px; background: var(--bg-primary); border: 2px solid var(--border-color); border-radius: 4px;">
+                            </div>
+                            <span>Empty</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 20px; height: 20px; background: rgba(59, 130, 246, 0.2); border: 2px solid #3b82f6; border-radius: 4px;">
+                            </div>
+                            <span>Process 1</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 20px; height: 20px; background: rgba(16, 185, 129, 0.2); border: 2px solid #10b981; border-radius: 4px;">
+                            </div>
+                            <span>Process 2</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <div
+                                style="width: 20px; height: 20px; background: rgba(245, 158, 11, 0.2); border: 2px solid #f59e0b; border-radius: 4px;">
+                            </div>
+                            <span>Process 3</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Producer-Consumer Demo -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Producer-Consumer Pattern</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.6;">
+                    Simulate a classic producer-consumer scenario where Process 1 produces data and Process 2 consumes
+                    it.
+                    This demonstrates how shared memory enables fast data exchange but requires careful synchronization.
+                </p>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="runProducerConsumer()">
+                        Run Producer-Consumer Demo
+                    </button>
+                    <button class="btn btn-error" onclick="simulateRaceCondition()">
+                        Simulate Race Condition
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearMemory()">
+                        Clear Memory
+                    </button>
+                </div>
+            </section>
+
+            <!-- Information Panel -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">How Shared Memory Works</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-primary); margin-bottom: 0.5rem;">🔗 shmat()
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Attaches a shared memory segment to a process's address space. Multiple processes can attach
+                            to the same segment, allowing direct memory access.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-success); margin-bottom: 0.5rem;">✍️ Direct
+                            Access</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Once attached, processes read/write directly to memory - no system calls needed for each
+                            operation.
+                            This makes shared memory the fastest IPC method.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-warning); margin-bottom: 0.5rem;">⚠️
+                            Synchronization</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Requires manual synchronization (semaphores/mutexes) to prevent race conditions.
+                            Without proper locking, concurrent writes can corrupt data.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Debug Console -->
+            <section class="debug-panel">
+                <div class="debug-header">
+                    <div class="debug-title">
+                        <span>🐛</span>
+                        <span>System Call Logs</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+                </div>
+                <div class="debug-console" id="debugConsole"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Shared Memory Simulator Logic
+        let logger;
+        let sharedMemory = new Array(16).fill(null);
+        let attachedProcesses = new Set();
+        const PROCESS_COLORS = {
+            1: { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6' },
+            2: { bg: 'rgba(16, 185, 129, 0.2)', border: '#10b981' },
+            3: { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b' }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            logger = new Logger(document.getElementById('debugConsole'));
+            initializeMemoryGrid();
+            logger.info('Shared memory segment created (shmget)');
+            logger.info('Segment ID: 0x5678, Size: 16 cells, Base: 0x7F8A4000');
+            logger.info('System ready. Processes can attach to shared memory.');
+        });
+
+        function initializeMemoryGrid() {
+            const grid = document.getElementById('memoryGrid');
+            grid.innerHTML = sharedMemory.map((_, index) => {
+                const address = (0x7F8A4000 + index).toString(16).toUpperCase();
+                return `
+          <div class="memory-cell" data-address="${index}">
+            <div class="memory-address">0x${address}</div>
+            <div class="memory-value">-</div>
+          </div>
+        `;
+            }).join('');
+        }
+
+        function updateMemoryDisplay() {
+            sharedMemory.forEach((cell, index) => {
+                const cellElement = document.querySelector(`[data-address="${index}"]`);
+                if (cell) {
+                    cellElement.querySelector('.memory-value').textContent = cell.value;
+                    cellElement.style.background = PROCESS_COLORS[cell.process].bg;
+                    cellElement.style.borderColor = PROCESS_COLORS[cell.process].border;
+                    cellElement.classList.add('written');
+                } else {
+                    cellElement.querySelector('.memory-value').textContent = '-';
+                    cellElement.style.background = '';
+                    cellElement.style.borderColor = '';
+                    cellElement.classList.remove('written');
+                }
+            });
+        }
+
+        function toggleProcess(processId) {
+            const btn = document.getElementById(`btn${processId}`);
+            const status = document.getElementById(`status${processId}`);
+
+            if (attachedProcesses.has(processId)) {
+                // Detach
+                attachedProcesses.delete(processId);
+                status.textContent = 'Detached';
+                btn.textContent = 'Attach to Memory';
+                btn.className = processId === 1 ? 'btn btn-primary' : processId === 2 ? 'btn btn-success' : 'btn btn-warning';
+                btn.style.width = '100%';
+                logger.info(`Process ${processId}: shmdt() - Detached from shared memory`);
+            } else {
+                // Attach
+                attachedProcesses.add(processId);
+                status.textContent = 'Attached';
+                status.style.color = PROCESS_COLORS[processId].border;
+                btn.textContent = 'Detach from Memory';
+                btn.className = 'btn btn-secondary';
+                btn.style.width = '100%';
+                logger.success(`Process ${processId}: shmat() - Attached to shared memory at 0x7F8A4000`);
+            }
+        }
+
+        async function writeToMemory() {
+            const processId = parseInt(document.getElementById('writeProcess').value);
+            const data = document.getElementById('writeData').value.trim();
+            const address = parseInt(document.getElementById('writeAddress').value);
+
+            if (!data) {
+                logger.error('Cannot write empty data');
+                return;
+            }
+
+            if (address < 0 || address > 15) {
+                logger.error('Invalid address. Must be between 0 and 15');
+                return;
+            }
+
+            if (!attachedProcesses.has(processId)) {
+                logger.error(`Process ${processId} is not attached to shared memory. Attach first.`);
+                return;
+            }
+
+            const hexAddress = (0x7F8A4000 + address).toString(16).toUpperCase();
+            logger.info(`Process ${processId}: Writing to address 0x${hexAddress}`);
+            logger.info(`  Data: "${data}" (${data.length} chars)`);
+
+            sharedMemory[address] = { value: data, process: processId };
+            updateMemoryDisplay();
+
+            logger.success(`Write complete. Memory[${address}] = "${data}"`);
+
+            // Notify other attached processes
+            attachedProcesses.forEach(pid => {
+                if (pid !== processId) {
+                    logger.info(`Process ${pid}: Detected memory change at 0x${hexAddress}`);
+                }
+            });
+
+            document.getElementById('writeData').value = '';
+        }
+
+        async function runProducerConsumer() {
+            // Ensure processes 1 and 2 are attached
+            if (!attachedProcesses.has(1)) toggleProcess(1);
+            if (!attachedProcesses.has(2)) toggleProcess(2);
+
+            logger.info('=== Starting Producer-Consumer Demo ===');
+            logger.info('Process 1 (Producer) will write data');
+            logger.info('Process 2 (Consumer) will read data');
+
+            await sleep(1000);
+
+            // Producer writes
+            for (let i = 0; i < 5; i++) {
+                const data = `Item${i + 1}`;
+                sharedMemory[i] = { value: data, process: 1 };
+                updateMemoryDisplay();
+
+                logger.info(`Process 1: Produced "${data}" at address ${i}`);
+                await sleep(800);
+            }
+
+            await sleep(1000);
+            logger.info('Process 2: Starting consumption...');
+
+            // Consumer reads
+            for (let i = 0; i < 5; i++) {
+                if (sharedMemory[i]) {
+                    logger.success(`Process 2: Consumed "${sharedMemory[i].value}" from address ${i}`);
+
+                    // Mark as consumed by changing to process 2
+                    sharedMemory[i] = { value: sharedMemory[i].value, process: 2 };
+                    updateMemoryDisplay();
+                    await sleep(800);
+                }
+            }
+
+            logger.success('=== Producer-Consumer Demo Complete ===');
+        }
+
+        async function simulateRaceCondition() {
+            if (!attachedProcesses.has(1)) toggleProcess(1);
+            if (!attachedProcesses.has(2)) toggleProcess(2);
+
+            logger.warning('=== Simulating Race Condition ===');
+            logger.warning('Two processes writing to same address without synchronization');
+
+            await sleep(1000);
+
+            const address = 0;
+
+            // Process 1 starts writing
+            logger.info('Process 1: Reading memory[0]...');
+            await sleep(500);
+            logger.info('Process 1: Current value: null, preparing to write "Value1"');
+
+            await sleep(300);
+
+            // Process 2 interrupts
+            logger.warning('Process 2: INTERRUPT - Reading memory[0]...');
+            await sleep(500);
+            logger.warning('Process 2: Current value: null, preparing to write "Value2"');
+
+            await sleep(300);
+
+            // Process 2 writes first
+            sharedMemory[address] = { value: 'Value2', process: 2 };
+            updateMemoryDisplay();
+            logger.info('Process 2: Wrote "Value2" to memory[0]');
+
+            await sleep(500);
+
+            // Process 1 overwrites (data loss!)
+            sharedMemory[address] = { value: 'Value1', process: 1 };
+            updateMemoryDisplay();
+            logger.error('Process 1: Wrote "Value1" to memory[0] - OVERWROTE Process 2 data!');
+
+            await sleep(1000);
+            logger.error('RACE CONDITION: Process 2\'s write was lost!');
+            logger.warning('Solution: Use semaphores or mutexes for synchronization');
+        }
+
+        function clearMemory() {
+            sharedMemory = new Array(16).fill(null);
+            updateMemoryDisplay();
+            logger.info('Shared memory cleared. All cells reset to null.');
+        }
+
+        function clearLogs() {
+            logger.clear();
+            logger.info('Logs cleared');
+        }
+
+        // Allow Enter key to write
+        document.getElementById('writeData').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                writeToMemory();
+            }
+        });
+    </script>
+</body>
+
+</html>

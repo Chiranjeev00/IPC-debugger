@@ -1,0 +1,13 @@
+# IPC Debugger Simulation
+
+Interactive educational website for visualizing Inter-Process Communication mechanisms in Operating Systems.
+
+## Live Demo
+Open `index.html` in your browser to start exploring!
+
+## Features
+- 🔗 Pipes Simulator
+- 📬 Message Queue Simulator  
+- 🧠 Shared Memory Simulator
+- 🌓 Dark Mode Support
+- 📱 Fully Responsive

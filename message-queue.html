@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Message Queue Simulator - IPC Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <div class="navbar-brand">🔄 IPC Debugger</div>
+            <div class="navbar-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="pipes.html" class="nav-link">Pipes</a>
+                <a href="message-queue.html" class="nav-link active">Message Queue</a>
+                <a href="shared-memory.html" class="nav-link">Shared Memory</a>
+                <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">🌙</button>
+            </div>
+        </div>
+    </nav>
+
+   
+    <main class="page-wrapper">
+        <div class="container" style="padding: 2rem 1.5rem;">
+            <!-- Header -->
+            <section class="text-center" style="margin-bottom: 2rem;">
+                <h1 style="font-size: 2.5rem; font-weight: 800; margin-bottom: 0.5rem;">
+                    📬 Message Queue Simulator
+                </h1>
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">
+                    Visualize structured message passing with priority-based retrieval
+                </p>
+            </section>
+
+            <!-- Controls -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Send Message</h3>
+                <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 1rem; align-items: end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="messageText">Message Text</label>
+                        <input type="text" id="messageText" class="form-input" placeholder="Enter your message..."
+                            maxlength="100">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="messagePriority">Priority</label>
+                        <select id="messagePriority" class="form-select">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="sendMessage()">
+                        Enqueue Message
+                    </button>
+                </div>
+                <div
+                    style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md); font-size: 0.9rem;">
+                    <span><strong>Queue Status:</strong> <span id="queueCount">0</span> messages</span>
+                    <span><strong>Capacity:</strong> <span id="queueCapacity">0 / 50</span></span>
+                </div>
+            </section>
+
+            <!-- Queue Visualization -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h3 style="font-size: 1.2rem; font-weight: 700; margin: 0;">Message Queue (FIFO)</h3>
+                    <button class="btn btn-success" onclick="dequeueMessage()" id="dequeueBtn" disabled>
+                        Dequeue Message
+                    </button>
+                </div>
+
+                <div class="queue-container">
+                    <div class="queue-items" id="queueItems">
+                        <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+                            <div>Queue is empty. Send a message to get started.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Information Panel -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">How Message Queues Work</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-primary); margin-bottom: 0.5rem;">📤 msgsnd()
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Sends a structured message to the queue. Messages include type, priority, and data.
+                            Multiple processes can send to the same queue concurrently.
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-success); margin-bottom: 0.5rem;">📥 msgrcv()
+                        </div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Retrieves messages from the queue. Can specify message type or retrieve in FIFO order.
+                            Blocks if queue is empty (in blocking mode).
+                        </p>
+                    </div>
+                    <div>
+                        <div style="font-weight: 600; color: var(--color-warning); margin-bottom: 0.5rem;">⚙️ Queue
+                            Properties</div>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6;">
+                            Messages persist until explicitly read. Multiple readers and writers supported.
+                            Each message has metadata: size, priority, timestamp, and sender info.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Simulation -->
+            <section class="card" style="margin-bottom: 2rem;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 1rem;">Error Simulation</h3>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-warning" onclick="simulateQueueFull()">
+                        Simulate Queue Full
+                    </button>
+                    <button class="btn btn-error" onclick="simulatePermissionDenied()">
+                        Simulate Permission Denied
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearQueue()">
+                        Clear Queue
+                    </button>
+                </div>
+            </section>
+
+            <!-- Debug Console -->
+            <section class="debug-panel">
+                <div class="debug-header">
+                    <div class="debug-title">
+                        <span>🐛</span>
+                        <span>System Call Logs</span>
+                    </div>
+                    <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+                </div>
+                <div class="debug-console" id="debugConsole"></div>
+            </section>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+    <script>
+        // Message Queue Simulator Logic
+        let logger;
+        let messageQueue = [];
+        let messageIdCounter = 1;
+        const MAX_QUEUE_SIZE = 50;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            logger = new Logger(document.getElementById('debugConsole'));
+            logger.info('Message queue initialized (msgget)');
+            logger.info('Queue ID: 0x1234, Max messages: 50, Max size: 8192 bytes');
+            logger.info('System ready for message passing operations');
+        });
+
+        function clearLogs() {
+            logger.clear();
+            logger.info('Logs cleared');
+        }
+
+        function updateQueueDisplay() {
+            const queueItems = document.getElementById('queueItems');
+            const dequeueBtn = document.getElementById('dequeueBtn');
+
+            document.getElementById('queueCount').textContent = messageQueue.length;
+            document.getElementById('queueCapacity').textContent = `${messageQueue.length} / ${MAX_QUEUE_SIZE}`;
+
+            if (messageQueue.length === 0) {
+                queueItems.innerHTML = `
+          <div style="text-align: center; padding: 3rem; color: var(--text-tertiary);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+            <div>Queue is empty. Send a message to get started.</div>
+          </div>
+        `;
+                dequeueBtn.disabled = true;
+            } else {
+                queueItems.innerHTML = messageQueue.map((msg, index) => `
+          <div class="queue-message priority-${msg.priority}" data-id="${msg.id}">
+            <div class="message-content">
+              <div class="message-text">${msg.text}</div>
+              <div class="message-meta">
+                <span>ID: ${msg.id}</span>
+                <span>Priority: ${msg.priority.toUpperCase()}</span>
+                <span>Size: ${msg.size} bytes</span>
+                <span>Time: ${msg.timestamp}</span>
+              </div>
+            </div>
+            <div style="font-size: 1.5rem;">
+              ${msg.priority === 'high' ? '🔴' : msg.priority === 'medium' ? '🟡' : '🟢'}
+            </div>
+          </div>
+        `).join('');
+                dequeueBtn.disabled = false;
+            }
+        }
+
+        async function sendMessage() {
+            const textInput = document.getElementById('messageText');
+            const priorityInput = document.getElementById('messagePriority');
+
+            const text = textInput.value.trim();
+            if (!text) {
+                logger.error('Cannot send empty message');
+                return;
+            }
+
+            if (messageQueue.length >= MAX_QUEUE_SIZE) {
+                logger.error('EAGAIN: Message queue is full (50 messages). Cannot enqueue.');
+                return;
+            }
+
+            const priority = priorityInput.value;
+            const size = new TextEncoder().encode(text).length;
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+
+            const message = {
+                id: messageIdCounter++,
+                text: text,
+                priority: priority,
+                size: size,
+                timestamp: timestamp
+            };
+
+            logger.info(`msgsnd(msgid, &message, ${size}, 0)`);
+            logger.info(`  Message: "${text}"`);
+            logger.info(`  Priority: ${priority}, Size: ${size} bytes`);
+
+            messageQueue.push(message);
+            updateQueueDisplay();
+
+            logger.success(`Message #${message.id} enqueued successfully`);
+            logger.info(`Queue size: ${messageQueue.length}/${MAX_QUEUE_SIZE} messages`);
+
+            textInput.value = '';
+
+            // Highlight the new message
+            await sleep(100);
+            const newMsg = document.querySelector(`[data-id="${message.id}"]`);
+            if (newMsg) {
+                newMsg.style.background = 'rgba(59, 130, 246, 0.2)';
+                setTimeout(() => {
+                    newMsg.style.background = '';
+                }, 1000);
+            }
+        }
+
+        async function dequeueMessage() {
+            if (messageQueue.length === 0) {
+                logger.warning('Queue is empty. Nothing to dequeue.');
+                return;
+            }
+
+            logger.info('msgrcv(msgid, &buffer, 8192, 0, 0)');
+
+            // Highlight the message being dequeued
+            const firstMsg = document.querySelector('.queue-message');
+            if (firstMsg) {
+                firstMsg.style.background = 'rgba(16, 185, 129, 0.3)';
+                firstMsg.style.transform = 'translateX(10px)';
+            }
+
+            await sleep(500);
+
+            const message = messageQueue.shift();
+
+            logger.success(`Message #${message.id} dequeued: "${message.text}"`);
+            logger.info(`  Priority: ${message.priority}, Size: ${message.size} bytes`);
+            logger.info(`Remaining messages: ${messageQueue.length}`);
+
+            updateQueueDisplay();
+        }
+
+        async function simulateQueueFull() {
+            const originalLength = messageQueue.length;
+
+            // Fill queue to capacity
+            while (messageQueue.length < MAX_QUEUE_SIZE) {
+                messageQueue.push({
+                    id: messageIdCounter++,
+                    text: `Auto-generated message ${messageQueue.length + 1}`,
+                    priority: 'low',
+                    size: 32,
+                    timestamp: new Date().toLocaleTimeString('en-US', { hour12: false })
+                });
+            }
+
+            updateQueueDisplay();
+            logger.warning(`Queue filled to capacity: ${MAX_QUEUE_SIZE} messages`);
+            logger.error('EAGAIN: Cannot enqueue - queue is full');
+
+            await sleep(3000);
+
+            // Restore original state
+            messageQueue = messageQueue.slice(0, originalLength);
+            updateQueueDisplay();
+            logger.info('Queue restored to previous state');
+        }
+
+        async function simulatePermissionDenied() {
+            logger.error('EACCES: Permission denied - insufficient privileges to access message queue');
+            logger.error('Process does not have read/write permissions for queue ID 0x1234');
+
+            await sleep(2000);
+            logger.info('Permissions restored. Operations can continue.');
+        }
+
+        function clearQueue() {
+            const count = messageQueue.length;
+            messageQueue = [];
+            updateQueueDisplay();
+            logger.info(`Queue cleared. Removed ${count} message(s)`);
+            logger.info('msgctl(msgid, IPC_RMID, NULL) - Queue reset');
+        }
+
+        // Allow Enter key to send
+        document.getElementById('messageText').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>
