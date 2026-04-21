@@ -355,7 +355,7 @@
             await sleep(1000);
             logger.info('Process 2: Starting consumption...');
 
-            // Consumer reads
+           
             for (let i = 0; i < 5; i++) {
                 if (sharedMemory[i]) {
                     logger.success(`Process 2: Consumed "${sharedMemory[i].value}" from address ${i}`);
